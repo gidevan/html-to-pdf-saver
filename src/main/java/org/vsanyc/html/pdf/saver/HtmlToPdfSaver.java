@@ -3,6 +3,7 @@ package org.vsanyc.html.pdf.saver;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.print.PrintOptions;
 
 import java.io.*;
@@ -56,26 +57,40 @@ public class HtmlToPdfSaver {
     private static void readInputFile(SaverProperties saverProperties) throws Exception {
 
         var inputFilePath = getInputPaths(saverProperties);
-        List<String> lines = Files.readAllLines(Paths.get(inputFilePath.getPath()));
+        var normalizedPath = normalizePath(inputFilePath);
+        System.out.println("normalizedPath: " + normalizedPath);
+        List<String> lines = Files.readAllLines(Paths.get(normalizedPath));
 
         for(String line: lines) {
             System.out.println("Try to download [" + line + "]");
-            downloadFile(line, saverProperties);
+            downloadFileChrome(line, saverProperties);
+            System.out.println("File downloaded");
+            System.out.println();
         }
     }
 
-    private static URL getInputPaths(SaverProperties saverProperties) throws MalformedURLException {
+    private static String normalizePath(String path) {
+        if (System.getProperty("os.name").contains("Windows")) {
+            var normalizedPath1 = path.replace("/", "");
+            return normalizedPath1.replaceAll("/", "\\");
+        } else {
+            return path;
+        }
+    }
+
+    private static String getInputPaths(SaverProperties saverProperties) throws MalformedURLException {
         String userDir = System.getProperty("user.dir");
         System.out.println("user.dir:" + userDir);
         var inputPaths = new File(userDir + "/" + saverProperties.getInputPaths());
+
         if (inputPaths.exists() && !inputPaths.isDirectory()) {
-            return new File(userDir + "/" + saverProperties.getInputPaths()).toURI().toURL();
+            return new File(userDir + "/" + saverProperties.getInputPaths()).getPath();
         } else {
-            return HtmlToPdfSaver.class.getClassLoader().getResource(saverProperties.getInputPaths());
+            return HtmlToPdfSaver.class.getClassLoader().getResource(saverProperties.getInputPaths()).getPath();
         }
     }
 
-    private static void downloadFile(String pageUrl, SaverProperties saverProperties) throws Exception {
+    private static void downloadFileChrome(String pageUrl, SaverProperties saverProperties) throws Exception {
         var chromeOptions = new ChromeOptions();
         chromeOptions.setHeadless(true);
 
